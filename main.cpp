@@ -8,6 +8,8 @@
 
 #define POP_SIZE 15
 #define TOTAL_STAT_POINTS 200
+
+#define ATTRIB_NUM 4      // Mudar aqui caso adicione/remova um atributo
 #define BASE_ATK 10.0
 #define BASE_DEF 10.0
 #define BASE_HP  500.0
@@ -16,9 +18,9 @@
 #define MAX_DEF (BASE_DEF + TOTAL_STAT_POINTS)  // defesa máxima de uma ent
 #define HP_MODIFIER 5    // quanto de vida a entidade ganha ao gastar um ponto em hp
 
-using namespace std;
+#define DEBUG_MODE true
 
-// Teste
+using namespace std;
 
 class Entity {
     public:
@@ -40,6 +42,38 @@ class Entity {
         index = -1;
     }
 
+    void GenerateRandomStats(){
+        vector<int> aux, points(4, 0);
+
+        // Escolhe aleatoriamente a qtd de pontos para cada atributo
+        // gerando 4 numeros aleatorios entre 0 e TOTAL_STAT_POINTS,
+        // ordenando-os e utilizando os intervalos entre eles
+        aux.push_back(0);
+        for(int i=0; i<ATTRIB_NUM-1; i++){
+            aux.push_back((int)rand()%(TOTAL_STAT_POINTS+1));
+        }
+        aux.push_back(TOTAL_STAT_POINTS);
+
+        sort(aux.begin(), aux.end());
+
+        if(DEBUG_MODE){
+            for(int i=0; i<ATTRIB_NUM+1; i++){
+                cout << aux[i] << " ";
+            }
+            cout << endl;
+        }
+
+        for(int i=0; i<ATTRIB_NUM; i++){
+            points[i] = aux[i+1] - aux[i];
+        }
+
+        // Adiciona os pontos a seus respectivos atributos
+        atk += (float)points[0];
+        def += (float)points[1];
+        hp += (float)HP_MODIFIER*points[2];
+        spd += (float)points[3];
+    }
+
     bool IsDead(){
         return hp <= 0;
     }
@@ -47,7 +81,7 @@ class Entity {
     void TakeDamage(float dmg){
         // Reduz dano tomado em função da defesa
         // até um máximo de 50% de redução de dano
-        hp -= dmg * (1 - (0.5/MAX_DEF)*def);
+        hp -= dmg * (1 - (0.6/MAX_DEF)*def);
     }
 };
 
@@ -71,42 +105,14 @@ void PrintEntity(Entity e, ofstream &battleLog){
     battleLog << endl;
 }
 
-// Distribui os pontos entre os atributos da entidade
-void Distribute(int total, Entity &e){
-    int aux, points = total;
-    vector<float> attribs(4, 0);
-
-    // Escolhe aleatoriamente a qtd de pontos para cada atributo
-    for(int i=0; i<3 and points > 0; i++){
-        aux = ((int)rand() % points)+1;
-        attribs[i] = (float) aux;
-        points -= aux;
-    }
-    // Usa os pontos restantes
-    attribs[3] = (float) points;
-
-    // Adiciona os pontos a seus respectivos atributos
-    e.atk += attribs[0];
-    e.def += attribs[1];
-    e.hp += HP_MODIFIER*attribs[2];
-    e.spd += attribs[3];
-}
-
-// Distribui pontos nos atributos de cada entidade
-// e armazena em si seu indice no vetor de população
-void InitializePop(vector<Entity> &p){    
-    for(int i=0; i<POP_SIZE; i++){
-        Distribute(TOTAL_STAT_POINTS, p[i]);
-        p[i].index = i;
-    }
-}
-
 // Duelo entre 2 entidades
 Entity* Duel(Entity *A, Entity *B, ofstream &battleLog){
     Entity *attacker, *defender, *aux, *winner, *loser,
             a, b;
 
-    battleLog << "----------------------------------------------------" << endl;
+    if(DEBUG_MODE)
+        battleLog << "----------------------------------------------------" << endl;
+    
     // Copia entidades para variáveis auxiliares
     a = *A;
     b = *B;
@@ -129,9 +135,11 @@ Entity* Duel(Entity *A, Entity *B, ofstream &battleLog){
         float dmg = attacker->atk;
         defender->TakeDamage(dmg);
 
-        battleLog << "E" << attacker->index << " ataca " << "E" << defender->index << endl;
-        battleLog << "Vida de E" << defender->index << ": " << defender->hp << endl;
-        battleLog << endl;
+        if(DEBUG_MODE){
+            battleLog << "E" << attacker->index << " ataca " << "E" << defender->index << endl;
+            battleLog << "Vida de E" << defender->index << ": " << defender->hp << endl;
+            battleLog << endl;
+        }
 
         // Troca quem ataca e quem defende
         aux = attacker;
@@ -148,8 +156,11 @@ Entity* Duel(Entity *A, Entity *B, ofstream &battleLog){
         loser = B;
     }
 
-    battleLog << "E" << winner->index << " venceu E" << loser->index << "!" << endl;
-    battleLog << "----------------------------------------------------" << endl << endl;
+    if(DEBUG_MODE){
+        battleLog << "E" << winner->index << " venceu E" << loser->index << "!" << endl;
+        battleLog << "----------------------------------------------------" << endl << endl;
+    }
+
     return winner;
 }
 
@@ -184,20 +195,21 @@ Entity *Evaluate(vector<Entity> &p, ofstream &battleLog){
         }
     }
 
-    // Debug
-    battleLog << "Battle Winners: " << endl;
-    for(int i=0; i<(int)p.size(); i++){
-        battleLog << "E" << i << ": ";
-        for(int j=0; j<i; j++){
-            battleLog << "E" << fightWinner[i][j] << " ";
+    if(DEBUG_MODE){
+        battleLog << "Battle Winners: " << endl;
+        for(int i=0; i<(int)p.size(); i++){
+            battleLog << "E" << i << ": ";
+            for(int j=0; j<i; j++){
+                battleLog << "E" << fightWinner[i][j] << " ";
+            }
+            battleLog << endl;
         }
-        battleLog << endl;
+        battleLog << "   ";
+        for(int i=0; i<(int)p.size(); i++){
+            battleLog << " E" << i;
+        }
+        battleLog << endl << endl;
     }
-    battleLog << "   ";
-    for(int i=0; i<(int)p.size(); i++){
-        battleLog << " E" << i;
-    }
-    battleLog << endl << endl;
 
     return best;
 }
@@ -211,7 +223,11 @@ int main(){
     vector<Entity> population(POP_SIZE);
 
     // Gera entidades com status aleatorios
-    InitializePop(population);
+    // e armazena em si seu indice no vetor de população
+    for(int i=0; i<POP_SIZE; i++){
+        population[i].GenerateRandomStats();
+        population[i].index = i;
+    }
 
     // Avalia as entidades
     Entity *best = Evaluate(population, battleLog);
@@ -219,12 +235,14 @@ int main(){
     PrintEntity(*best);
 
     // Debug
-    for(int i=0; i<(int)population.size(); i++){
-        PrintEntity(population[i], battleLog);
-    }
+    if(DEBUG_MODE){
+        for(int i=0; i<(int)population.size(); i++){
+            PrintEntity(population[i], battleLog);
+        }
 
-    battleLog << "Best Entity:" << endl;
-    PrintEntity(*best, battleLog);
+        battleLog << "Best Entity:" << endl;
+        PrintEntity(*best, battleLog);
+    }
 
     battleLog.close();
 
