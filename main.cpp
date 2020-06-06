@@ -6,24 +6,34 @@
 #include <fstream>
 #include <string>
 
-#define POP_SIZE 15
-#define ENEMY_POP_SIZE 10
+#define GENERATIONS_NUM 50
+#define POP_SIZE 200
+#define ENEMY_POP_SIZE 1000
 #define TOTAL_STAT_POINTS 200
 
 #define ATTRIB_NUM 5      // Mudar aqui caso adicione/remova um atributo
-#define BASE_ATK 10
+#define BASE_ATK 40
 #define BASE_DEF 10
-#define BASE_HP  500
-#define BASE_HP_REGEN 5
+#define BASE_HP  600
+#define BASE_HP_REGEN 200
 #define BASE_SPD 10
 
-#define MAX_DEF (BASE_DEF + TOTAL_STAT_POINTS)  // defesa máxima de uma ent
-#define HP_MODIFIER 5    // quanto de vida a entidade ganha ao gastar um ponto em hp
+#define MAX_DEF (BASE_DEF + TOTAL_STAT_POINTS)  // defesa máxima de uma entidade
+#define HP_MODIFIER 5    // quanto de vida a entidade ganha ao gastar um ponto em hp máximo
+#define ATK_MODIFIER 1
+#define HP_REGEN_MODIFIER 2
 
 #define DEBUG_MODE false
 
 using namespace std;
 
+enum StatIndex {
+    ATK,
+    DEF,
+    HP_MAX,
+    HP_REGEN,
+    SPD
+};
 
 class Entity {
     public:
@@ -36,6 +46,8 @@ class Entity {
         int spd;
         int score;
         int index;
+
+        vector<int> points;
 
         Entity(){
             // Status base
@@ -67,36 +79,53 @@ class Entity {
             }
 
             // Adiciona os pontos a seus respectivos atributos
-            atk += points[0];
-            def += points[1];
-            hp_max  += HP_MODIFIER*points[2];
-            hp_current = hp_max;
-            hp_regen += points[3];
-            spd += points[4];
+            this->atk += points[StatIndex::ATK];
+            this->def += points[StatIndex::DEF];
+            this->hp_max  += HP_MODIFIER*points[StatIndex::HP_MAX];
+            this->hp_current = this->hp_max;
+            this->hp_regen += points[StatIndex::HP_REGEN];
+            this->spd += points[StatIndex::SPD];
+
+            this->points = points;
         }
 
         bool IsDead(){
-            return hp_current <= 0;
+            return this->hp_current <= 0;
         }
 
         void TakeDamage(int dmg){
             // Reduz dano tomado em função da defesa
-            // até um máximo de 50% de redução de dano
+            // até um máximo de 60% de redução de dano
             hp_current -= dmg * (1 - (0.6/MAX_DEF)*def);
         }
 
         void RegenerateHP(){
-            this->hp_current += this->hp_regen; 
+            this->hp_current += HP_REGEN_MODIFIER * this->hp_regen; 
             if(this->hp_current > this->hp_max){
                 this->hp_current = this->hp_max;
             }
+        }
+
+        void Crossover(Entity other){
+            this->points[StatIndex::ATK] = (this->points[StatIndex::ATK] + other.points[StatIndex::ATK])/2;
+            this->points[StatIndex::DEF] = (this->points[StatIndex::DEF] + other.points[StatIndex::DEF])/2;
+            this->points[StatIndex::HP_MAX] = (this->points[StatIndex::HP_MAX] + other.points[StatIndex::HP_MAX])/2;
+            this->points[StatIndex::HP_REGEN] = (this->points[StatIndex::HP_REGEN] + other.points[StatIndex::HP_REGEN])/2;
+            this->points[StatIndex::SPD] = (this->points[StatIndex::SPD] + other.points[StatIndex::SPD])/2;
+            this->atk = BASE_ATK + this->points[StatIndex::ATK];
+            this->def = BASE_DEF + this->points[StatIndex::DEF];
+            this->hp_max = BASE_HP + HP_MODIFIER*this->points[StatIndex::HP_MAX];
+            this->hp_current = this->hp_max;
+            this->hp_regen = BASE_HP_REGEN + this->points[StatIndex::HP_REGEN];
+            this->spd = BASE_SPD + this->points[StatIndex::SPD];
+            score = 0;
         }
 
         void PrintEntity(){
             cout << "E" << this->index << endl;
             cout << "atk: " << this->atk << endl;
             cout << "def: " << this->def << endl;
-            cout << "max_hp: " << this->hp_max << endl;
+            cout << "hp_max: " << this->hp_max << endl;
             cout << "hp_current: " << this->hp_current << endl;
             cout << "hp_regen: " << this->hp_regen << endl;
             cout << "spd: " << this->spd << endl;
@@ -114,6 +143,10 @@ class Entity {
             battleLog << "spd: " << this->spd << endl;
             battleLog << "score: " << this->score << endl;
             battleLog << endl;
+        }
+
+        bool operator==(Entity other) const{
+            return this->index == other.index;
         }
 };
 
@@ -184,8 +217,8 @@ bool DuelToDeath(Entity *I, Entity *E, ofstream &battleLog){
     
     bool indWon = false;
 
-    if(DEBUG_MODE)
-        battleLog << "----------------------------------------------------" << endl;
+    // if(DEBUG_MODE)
+    //     battleLog << "----------------------------------------------------" << endl;
     
     // Copia lutadores para variaveis auxiliares
     a = *I;
@@ -206,17 +239,17 @@ bool DuelToDeath(Entity *I, Entity *E, ofstream &battleLog){
 
     // Ambos lutam até a morte
     while(!a.IsDead() and !b.IsDead()){
-        int dmg = attacker->atk;
+        int dmg = ATK_MODIFIER * attacker->atk;
         defender->TakeDamage(dmg);
 
-        if(DEBUG_MODE){
-            battleLog << "E" << attacker->index << " ataca " << "E" << defender->index << endl;
-            battleLog << "Vida de E" << defender->index << ": " << defender->hp_current << endl;
-            battleLog << endl;
-        }
+        // if(DEBUG_MODE){
+        //     battleLog << "E" << attacker->index << " ataca " << "E" << defender->index << endl;
+        //     battleLog << "Vida de E" << defender->index << ": " << defender->hp_current << endl;
+        //     battleLog << endl;
+        // }
 
         // Regenera HP do atacante
-        attacker->RegenerateHP();
+        // attacker->RegenerateHP();
 
         // Troca quem ataca e quem defende
         aux = attacker;
@@ -228,10 +261,10 @@ bool DuelToDeath(Entity *I, Entity *E, ofstream &battleLog){
 
     indWon = !a.IsDead();
 
-    if(DEBUG_MODE){
-        battleLog << "E" << winner->index << " venceu E" << loser->index << "!" << endl;
-        battleLog << "----------------------------------------------------" << endl << endl;
-    }
+    // if(DEBUG_MODE){
+    //     battleLog << "E" << winner->index << " venceu E" << loser->index << "!" << endl;
+    //     battleLog << "----------------------------------------------------" << endl << endl;
+    // }
 
     return indWon;
 }
@@ -254,9 +287,11 @@ Entity *Evaluate(vector<Entity> &p, vector<Entity> &e, ofstream &battleLog){
     for(int i=0; i<(int)p.size(); i++){
         bool isWinning = true;
         I = &(p[i]);
+        I->score = 0;
         for(int j=0; j<ENEMY_POP_SIZE and isWinning; j++){
             E = &(e[j]);
             isWinning = DuelToDeath(I, E, battleLog);
+            I->RegenerateHP();
 
             if(isWinning){
                 I->score++;
@@ -290,6 +325,15 @@ Entity *Evaluate(vector<Entity> &p, vector<Entity> &e, ofstream &battleLog){
     return best;
 }
 
+void Crossover(vector<Entity> &p, Entity *best){
+    for(int i=0; i<(int)p.size(); i++){
+        if(p[i] == *best)
+            continue;
+        
+        p[i].Crossover(*best);
+    }
+}
+
 int main(){
     srand(time(NULL));
 
@@ -313,9 +357,18 @@ int main(){
     }
 
     // Avalia as entidades
-    Entity *best = Evaluate(population, enemies, battleLog);
+    Entity bestEver;
+    for(int i=0; i<GENERATIONS_NUM; i++){
+        Entity *bestCurrent = Evaluate(population, enemies, battleLog);
 
-    best->PrintEntity();
+        if(bestCurrent->score > bestEver.score){
+            bestEver = *bestCurrent;
+        }
+
+        Crossover(population, bestCurrent);
+    }
+
+    bestEver.PrintEntity();
 
     // Debug
     if(DEBUG_MODE){
@@ -324,7 +377,7 @@ int main(){
         }
 
         battleLog << "Best Entity:" << endl;
-        best->PrintEntity(battleLog);
+        bestEver.PrintEntity(battleLog);
     }
 
     battleLog.close();

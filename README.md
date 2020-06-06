@@ -1,8 +1,6 @@
 # Sistemas-Evolutivos
 
-<<<<<<< HEAD
-LiveShare: https://prod.liveshare.vsengsaas.visualstudio.com/join?75DD0CC8C96ED1CEBA4C1EFBA389CFBD40E8
-
-Duvidas (perguntar ao SImoes):
+Duvidas:
  - Função de avaliação ta boa?
- - Como fazer o crossover com multiplas variaveis (e manter o limite de distribuição de pontos)
+ - Avaliação limitada à fila de inimigos gerada no inicio -> Lutar em diferentes filas e tirar a media dos scores?
+ - Adicionar eventos aleatórios? (acerto critico, evasão, etc)
