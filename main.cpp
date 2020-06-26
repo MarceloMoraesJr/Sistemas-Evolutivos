@@ -6,8 +6,8 @@
 #include <fstream>
 #include <string>
 
-#define GENERATIONS_NUM 50
-#define POP_SIZE 200
+#define GENERATIONS_NUM 3
+#define POP_SIZE 5
 #define ENEMY_POP_SIZE 1000
 #define TOTAL_STAT_POINTS 200
 
@@ -21,13 +21,16 @@
 #define MAX_DEF (BASE_DEF + TOTAL_STAT_POINTS)  // defesa máxima de uma entidade
 #define HP_MODIFIER 5    // quanto de vida a entidade ganha ao gastar um ponto em hp máximo
 #define ATK_MODIFIER 1
-#define HP_REGEN_MODIFIER 2
+#define HP_REGEN_MODIFIER 3
 
 #define DEBUG_MODE false
 
 using namespace std;
 
-enum StatIndex {
+// Taxa de mutação inicial
+float MUT_RATE = 0.1;
+
+enum AttribIndex {
     ATK,
     DEF,
     HP_MAX,
@@ -46,7 +49,6 @@ class Entity {
         int spd;
         int score;
         int index;
-
         vector<int> points;
 
         Entity(){
@@ -79,12 +81,12 @@ class Entity {
             }
 
             // Adiciona os pontos a seus respectivos atributos
-            this->atk += points[StatIndex::ATK];
-            this->def += points[StatIndex::DEF];
-            this->hp_max  += HP_MODIFIER*points[StatIndex::HP_MAX];
+            this->atk += points[AttribIndex::ATK];
+            this->def += points[AttribIndex::DEF];
+            this->hp_max  += HP_MODIFIER*points[AttribIndex::HP_MAX];
             this->hp_current = this->hp_max;
-            this->hp_regen += points[StatIndex::HP_REGEN];
-            this->spd += points[StatIndex::SPD];
+            this->hp_regen += points[AttribIndex::HP_REGEN];
+            this->spd += points[AttribIndex::SPD];
 
             this->points = points;
         }
@@ -107,17 +109,89 @@ class Entity {
         }
 
         void Crossover(Entity other){
-            this->points[StatIndex::ATK] = (this->points[StatIndex::ATK] + other.points[StatIndex::ATK])/2;
-            this->points[StatIndex::DEF] = (this->points[StatIndex::DEF] + other.points[StatIndex::DEF])/2;
-            this->points[StatIndex::HP_MAX] = (this->points[StatIndex::HP_MAX] + other.points[StatIndex::HP_MAX])/2;
-            this->points[StatIndex::HP_REGEN] = (this->points[StatIndex::HP_REGEN] + other.points[StatIndex::HP_REGEN])/2;
-            this->points[StatIndex::SPD] = (this->points[StatIndex::SPD] + other.points[StatIndex::SPD])/2;
-            this->atk = BASE_ATK + this->points[StatIndex::ATK];
-            this->def = BASE_DEF + this->points[StatIndex::DEF];
-            this->hp_max = BASE_HP + HP_MODIFIER*this->points[StatIndex::HP_MAX];
+            this->points[AttribIndex::ATK] = (this->points[AttribIndex::ATK] + other.points[AttribIndex::ATK])/2;
+            this->points[AttribIndex::DEF] = (this->points[AttribIndex::DEF] + other.points[AttribIndex::DEF])/2;
+            this->points[AttribIndex::HP_MAX] = (this->points[AttribIndex::HP_MAX] + other.points[AttribIndex::HP_MAX])/2;
+            this->points[AttribIndex::HP_REGEN] = (this->points[AttribIndex::HP_REGEN] + other.points[AttribIndex::HP_REGEN])/2;
+            this->points[AttribIndex::SPD] = (this->points[AttribIndex::SPD] + other.points[AttribIndex::SPD])/2;
+
+            int sum = 0;
+            for(int i=0; i<ATTRIB_NUM; i++){
+                sum += this->points[i];
+            }
+            this->points[rand()%ATTRIB_NUM] += TOTAL_STAT_POINTS - sum;
+
+            // Mutação
+            int mutDecStat, mutIncStat;            
+            int mutDecValue, mutIncValue;
+
+            mutDecValue = mutIncValue = (int) (MUT_RATE * ((double) (rand()%TOTAL_STAT_POINTS)-TOTAL_STAT_POINTS/2));
+
+            mutDecStat = mutIncStat = rand()%ATTRIB_NUM;
+            while(mutDecStat == mutIncStat)
+                mutDecStat = rand()%ATTRIB_NUM;
+            
+            for(int i=mutIncStat; mutIncValue > 0; i=(i+1)%ATTRIB_NUM){
+                this->points[i] += mutIncValue;
+                mutIncValue = 0;
+                if(this->points[i] > TOTAL_STAT_POINTS){
+                    mutIncValue = this->points[i] - TOTAL_STAT_POINTS;
+                    this->points[i] = TOTAL_STAT_POINTS;
+                }
+            }
+
+            for(int i=mutDecStat; mutDecValue > 0; i=(i+1)%ATTRIB_NUM){
+                this->points[i] -= mutDecValue;
+                mutDecValue = 0;
+                if(this->points[i] < 0){
+                    mutDecValue = -this->points[i];
+                    this->points[i] = 0;
+                }
+            }
+
+            // int mutStat = rand()%ATTRIB_NUM;            
+            // int mutValue = (int) (MUT_RATE * ((double) (rand()%TOTAL_STAT_POINTS)-TOTAL_STAT_POINTS/2));
+            // this->points[mutStat] += mutValue;
+
+            // if(this->points[mutStat] >= TOTAL_STAT_POINTS){
+            //     this->points[mutStat] = TOTAL_STAT_POINTS;
+            //     for(int i=0; i<ATTRIB_NUM; i++){
+            //         if(i != mutStat)
+            //             this->points[i] = 0;
+            //     }
+            // } else if(this->points[mutStat] < 0){
+            //     mutValue = this->points[mutStat];
+            //     this->points[mutStat] = 0;
+            //     for(int i=mutStat; mutValue < 0; i=(i+1)%ATTRIB_NUM){
+            //         if(i != mutStat){
+            //             this->points[i] += mutValue;
+            //             mutValue = 0;
+            //             if(this->points[i] < 0){
+            //                 mutValue = this->points[i];
+            //                 this->points[i] = 0;
+            //             }
+            //         }
+            //     }
+            // } else {
+            //     for(int i=mutStat; mutValue < 0; i=(i+1)%ATTRIB_NUM){
+            //         if(i != mutStat){
+            //             this->points[i] += mutValue;
+            //             mutValue = 0;
+            //             if(this->points[i] < 0){
+            //                 mutValue = this->points[i];
+            //                 this->points[i] = 0;
+            //             }
+            //         }
+            //     }
+            // }
+
+            // Calcula status
+            this->atk = BASE_ATK + this->points[AttribIndex::ATK];
+            this->def = BASE_DEF + this->points[AttribIndex::DEF];
+            this->hp_max = BASE_HP + HP_MODIFIER*this->points[AttribIndex::HP_MAX];
             this->hp_current = this->hp_max;
-            this->hp_regen = BASE_HP_REGEN + this->points[StatIndex::HP_REGEN];
-            this->spd = BASE_SPD + this->points[StatIndex::SPD];
+            this->hp_regen = BASE_HP_REGEN + this->points[AttribIndex::HP_REGEN];
+            this->spd = BASE_SPD + this->points[AttribIndex::SPD];
             score = 0;
         }
 
@@ -129,6 +203,12 @@ class Entity {
             cout << "hp_current: " << this->hp_current << endl;
             cout << "hp_regen: " << this->hp_regen << endl;
             cout << "spd: " << this->spd << endl;
+            cout << endl;
+            cout << "atk points: " << this->points[AttribIndex::ATK] << endl;
+            cout << "def points: " << this->points[AttribIndex::DEF] << endl;
+            cout << "hp_max points: " << this->points[AttribIndex::HP_MAX] << endl;
+            cout << "hp_regen points: " << this->points[AttribIndex::HP_REGEN] << endl;
+            cout << "spd points: " << this->points[AttribIndex::SPD] << endl;
             cout << "score: " << this->score << endl;
             cout << endl;
         }
@@ -149,66 +229,6 @@ class Entity {
             return this->index == other.index;
         }
 };
-
-
-// // Duelo entre 2 entidades
-// Entity* Duel(Entity *A, Entity *B, ofstream &battleLog){
-//     Entity *attacker, *defender, *aux, *winner, *loser,
-//             a, b;
-
-//     if(DEBUG_MODE)
-//         battleLog << "----------------------------------------------------" << endl;
-    
-//     // Copia entidades para variáveis auxiliares
-//     a = *A;
-//     b = *B;
-
-//     // Determina quem começa atacando
-//     // Se a for mais rápida, ataca primeiro
-//     attacker = &a;
-//     defender = &b;
-//     if(a.spd < b.spd){
-//         attacker = &b;
-//         defender = &a;
-//     }
-//     else if(rand()%2){
-//         attacker = &b;
-//         defender = &a;
-//     }
-
-//     // Ambos lutam até a morte
-//     while(!a.IsDead() and !b.IsDead()){
-//         float dmg = attacker->atk;
-//         defender->TakeDamage(dmg);
-
-//         if(DEBUG_MODE){
-//             battleLog << "E" << attacker->index << " ataca " << "E" << defender->index << endl;
-//             battleLog << "Vida de E" << defender->index << ": " << defender->hp << endl;
-//             battleLog << endl;
-//         }
-
-//         // Troca quem ataca e quem defende
-//         aux = attacker;
-//         attacker = defender;
-//         defender = aux;
-//     }
-
-//     // Checa quem venceu
-//     if(a.IsDead()){
-//         winner = B;
-//         loser = A;
-//     } else {
-//         winner = A;
-//         loser = B;
-//     }
-
-//     if(DEBUG_MODE){
-//         battleLog << "E" << winner->index << " venceu E" << loser->index << "!" << endl;
-//         battleLog << "----------------------------------------------------" << endl << endl;
-//     }
-
-//     return winner;
-// }
 
 // Duelo entre individuo da população e inimigo
 bool DuelToDeath(Entity *I, Entity *E, ofstream &battleLog){
@@ -274,14 +294,6 @@ bool DuelToDeath(Entity *I, Entity *E, ofstream &battleLog){
 Entity *Evaluate(vector<Entity> &p, vector<Entity> &e, ofstream &battleLog){
     Entity *best, *I, *E;
     int topScore = 0;
-
-    // // Matriz que guarda quem venceu cada luta
-    // int fightWinner[(int)p.size()][(int)p.size()];
-    // for(int i=0; i<(int)p.size(); i++){
-    //     for(int j=0; j<(int)p.size(); j++){
-    //         fightWinner[i][j] = 0;
-    //     }
-    // }
 
     // Organiza lutas e armazena quem obteve mais vitórias
     for(int i=0; i<(int)p.size(); i++){
@@ -358,14 +370,32 @@ int main(){
 
     // Avalia as entidades
     Entity bestEver;
+    Entity *bestCurrent;
     for(int i=0; i<GENERATIONS_NUM; i++){
-        Entity *bestCurrent = Evaluate(population, enemies, battleLog);
+        bestCurrent = Evaluate(population, enemies, battleLog);
 
         if(bestCurrent->score > bestEver.score){
             bestEver = *bestCurrent;
         }
 
+        int sum = 0;
+        for(int j=0; j<ATTRIB_NUM; j++){
+            sum += population[0].points[j];
+            cout << population[0].points[j] << " ";
+        }
+        cout << "sum = " << sum;
+        cout << endl;
+
         Crossover(population, bestCurrent);
+
+        sum = 0;
+        for(int j=0; j<ATTRIB_NUM; j++){
+            sum += population[0].points[j];
+            cout << population[0].points[j] << " ";
+        }
+        cout << "sum = " << sum;
+        cout << endl;
+        cout << endl;
     }
 
     bestEver.PrintEntity();
