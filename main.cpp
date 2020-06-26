@@ -8,7 +8,7 @@
 
 #define GENERATIONS_NUM 3
 #define POP_SIZE 5
-#define ENEMY_POP_SIZE 1000
+#define ENEMY_POP_SIZE 100
 #define TOTAL_STAT_POINTS 200
 
 #define ATTRIB_NUM 5      // Mudar aqui caso adicione/remova um atributo
@@ -149,42 +149,6 @@ class Entity {
                 }
             }
 
-            // int mutStat = rand()%ATTRIB_NUM;            
-            // int mutValue = (int) (MUT_RATE * ((double) (rand()%TOTAL_STAT_POINTS)-TOTAL_STAT_POINTS/2));
-            // this->points[mutStat] += mutValue;
-
-            // if(this->points[mutStat] >= TOTAL_STAT_POINTS){
-            //     this->points[mutStat] = TOTAL_STAT_POINTS;
-            //     for(int i=0; i<ATTRIB_NUM; i++){
-            //         if(i != mutStat)
-            //             this->points[i] = 0;
-            //     }
-            // } else if(this->points[mutStat] < 0){
-            //     mutValue = this->points[mutStat];
-            //     this->points[mutStat] = 0;
-            //     for(int i=mutStat; mutValue < 0; i=(i+1)%ATTRIB_NUM){
-            //         if(i != mutStat){
-            //             this->points[i] += mutValue;
-            //             mutValue = 0;
-            //             if(this->points[i] < 0){
-            //                 mutValue = this->points[i];
-            //                 this->points[i] = 0;
-            //             }
-            //         }
-            //     }
-            // } else {
-            //     for(int i=mutStat; mutValue < 0; i=(i+1)%ATTRIB_NUM){
-            //         if(i != mutStat){
-            //             this->points[i] += mutValue;
-            //             mutValue = 0;
-            //             if(this->points[i] < 0){
-            //                 mutValue = this->points[i];
-            //                 this->points[i] = 0;
-            //             }
-            //         }
-            //     }
-            // }
-
             // Calcula status
             this->atk = BASE_ATK + this->points[AttribIndex::ATK];
             this->def = BASE_DEF + this->points[AttribIndex::DEF];
@@ -192,7 +156,7 @@ class Entity {
             this->hp_current = this->hp_max;
             this->hp_regen = BASE_HP_REGEN + this->points[AttribIndex::HP_REGEN];
             this->spd = BASE_SPD + this->points[AttribIndex::SPD];
-            score = 0;
+            this->score = 0;
         }
 
         void PrintEntity(){
@@ -339,7 +303,7 @@ Entity *Evaluate(vector<Entity> &p, vector<Entity> &e, ofstream &battleLog){
 
 void Crossover(vector<Entity> &p, Entity *best){
     for(int i=0; i<(int)p.size(); i++){
-        if(p[i] == *best)
+        if(p[i].index == (*best).index)
             continue;
         
         p[i].Crossover(*best);
