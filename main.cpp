@@ -264,33 +264,42 @@ float DuelToDeath(Entity *I, Entity *E, ofstream &battleLog){
 // vitórias de cada entidade
 Entity *Evaluate(vector<Entity> &p, vector<vector<Entity>> &e, ofstream &battleLog){
     Entity *best, *I, *E;
-    int topScore = 0;
+    float topScore = 0, score, finalScore;
     bool isWinning;
     float turnCount;
     // best = &(p[0]);
 
     // Organiza lutas e armazena quem obteve mais vitórias
     for(int i=0; i<(int)p.size(); i++){
-        isWinning = true;
-        turnCount = 1;
         I = &(p[i]);
         I->score = 0;
-        for(int j=0; j<ENEMY_POP_SIZE and isWinning; j++){
-            E = &(e[j]);
-            turnCount = DuelToDeath(I, E, battleLog);
-            I->RegenerateHP();
+        finalScore = 0;
+        for(int j=0; j<ENEMY_POPS_COUNT; j++){
+            isWinning = true;
+            score = 0;
+            for(int k=0; k<ENEMY_POP_SIZE and isWinning; k++){
+                E = &(e[j][k]);
+                turnCount = DuelToDeath(I, E, battleLog);
+                I->RegenerateHP();
 
-            if(turnCount > 0){
-                I->score += 10 + 10/turnCount;
-            } else {
-                isWinning = false;
+                if(turnCount > 0){
+                    score += 10 + 10/turnCount;
+                } else {
+                    isWinning = false;
+                }
             }
 
-            if(i == 0 or I->score > topScore){
-                topScore = I->score;
-                best = I;
-            }
+            finalScore += score;
+            I->hp_current = I->hp_max;
         }
+
+        I->score = finalScore/(ENEMY_POPS_COUNT);
+
+        if(i == 0 or I->score > topScore){
+            topScore = I->score;
+            best = I;
+        }
+
     }
 
     // if(DEBUG_MODE){
@@ -349,7 +358,7 @@ int main(){
     ofstream battleLog("battleLog.txt", ofstream::out);
 
     vector<Entity> population(POP_SIZE);
-    vector<vector<Entity>> enemies(ENEMY_POPS_COUNT);
+    vector<vector<Entity>> enemies;
 
     for(int i=0; i<ENEMY_POPS_COUNT; i++){
         vector<Entity> enemy_pop(ENEMY_POP_SIZE);
