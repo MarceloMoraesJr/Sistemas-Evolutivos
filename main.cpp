@@ -6,10 +6,10 @@
 #include <fstream>
 #include <string>
 
-#define GENERATIONS_NUM 100
+#define GENERATIONS_NUM 1000
 #define POP_SIZE 50
-#define ENEMY_POPS_COUNT 100
-#define ENEMY_POP_SIZE 1000
+#define ENEMY_POPS_COUNT 10
+#define ENEMY_POP_SIZE 2000
 #define TOTAL_STAT_POINTS 200
 
 #define ATTRIB_NUM 5      // Mudar aqui caso adicione/remova um atributo
@@ -25,7 +25,7 @@
 #define HP_REGEN_MODIFIER 3
 
 #define BEST_IND_COUNT 5
-#define MUT_RATE_INIT 0.2
+#define MUT_RATE_INIT 0.002
 
 #define DEBUG_MODE false
 
@@ -165,13 +165,13 @@ class Entity {
 
         void PrintEntity(){
             cout << "E" << this->index << endl;
-            cout << "atk: " << this->atk << endl;
-            cout << "def: " << this->def << endl;
-            cout << "hp_max: " << this->hp_max << endl;
-            cout << "hp_current: " << this->hp_current << endl;
-            cout << "hp_regen: " << this->hp_regen << endl;
-            cout << "spd: " << this->spd << endl;
-            cout << endl;
+            // cout << "atk: " << this->atk << endl;
+            // cout << "def: " << this->def << endl;
+            // cout << "hp_max: " << this->hp_max << endl;
+            // cout << "hp_current: " << this->hp_current << endl;
+            // cout << "hp_regen: " << this->hp_regen << endl;
+            // cout << "spd: " << this->spd << endl;
+            // cout << endl;
             cout << "atk points: " << this->points[AttribIndex::ATK] << endl;
             cout << "def points: " << this->points[AttribIndex::DEF] << endl;
             cout << "hp_max points: " << this->points[AttribIndex::HP_MAX] << endl;
@@ -203,8 +203,6 @@ float DuelToDeath(Entity *I, Entity *E, ofstream &battleLog){
     Entity *attacker, *defender, *aux, *winner, *loser,
             a, b;
     float turnCount = 0;
-    
-    bool indWon = false;
 
     // if(DEBUG_MODE)
     //     battleLog << "----------------------------------------------------" << endl;
@@ -217,14 +215,14 @@ float DuelToDeath(Entity *I, Entity *E, ofstream &battleLog){
     // Se I for mais rápido, ataca primeiro
     attacker = &a;
     defender = &b;
-    if(a.spd < b.spd){
+    if(a.spd <= b.spd){
         attacker = &b;
         defender = &a;
     }
-    else if(rand()%2){
-        attacker = &b;
-        defender = &a;
-    }
+    // else if(rand()%2){
+    //     attacker = &b;
+    //     defender = &a;
+    // }
 
     // Ambos lutam até a morte
     while(!a.IsDead() and !b.IsDead()){
@@ -249,14 +247,16 @@ float DuelToDeath(Entity *I, Entity *E, ofstream &battleLog){
 
     *I = a;
 
-    indWon = !a.IsDead();
+    if(a.IsDead()){
+        turnCount = -1;
+    }
 
     // if(DEBUG_MODE){
     //     battleLog << "E" << winner->index << " venceu E" << loser->index << "!" << endl;
     //     battleLog << "----------------------------------------------------" << endl << endl;
     // }
 
-    return indWon;
+    return turnCount;
 }
 
 // Faz com que todos lutem contra todos e contabiliza o numero de
@@ -271,7 +271,6 @@ Entity *Evaluate(vector<Entity> &p, vector<vector<Entity>> &e, ofstream &battleL
     // Organiza lutas e armazena quem obteve mais vitórias
     for(int i=0; i<(int)p.size(); i++){
         I = &(p[i]);
-        I->score = 0;
         finalScore = 0;
         for(int j=0; j<ENEMY_POPS_COUNT; j++){
             isWinning = true;
@@ -282,7 +281,7 @@ Entity *Evaluate(vector<Entity> &p, vector<vector<Entity>> &e, ofstream &battleL
                 I->RegenerateHP();
 
                 if(turnCount > 0){
-                    score += 10 + 10/turnCount;
+                    score += 10 + 8/turnCount;
                 } else {
                     isWinning = false;
                 }
@@ -298,7 +297,6 @@ Entity *Evaluate(vector<Entity> &p, vector<vector<Entity>> &e, ofstream &battleL
             topScore = I->score;
             best = I;
         }
-
     }
 
     // if(DEBUG_MODE){
@@ -322,8 +320,9 @@ Entity *Evaluate(vector<Entity> &p, vector<vector<Entity>> &e, ofstream &battleL
 
 void Crossover(vector<Entity> &p, Entity *best){
     for(int i=0; i<(int)p.size(); i++){
-        if(p[i].index == (*best).index)
+        if(p[i].index == (*best).index){
             continue;
+        }
         
         p[i].Crossover(*best);
     }
@@ -339,7 +338,7 @@ void Genocide(Entity &best, vector<Entity> &population){
 
 void IncreaseMutationRate(vector<Entity> &bestEver, vector<Entity> &population){
     if(bestEver[BEST_IND_COUNT-1].score - bestEver[0].score < 0.1){
-        MUT_RATE *= 1.2;
+        MUT_RATE *= 1.1;
     } else {
         MUT_RATE = MUT_RATE_INIT;
     }
@@ -374,6 +373,12 @@ int main(){
         population[i].index = i;
     }
 
+    // Inicializa vetor de melhores individuos
+    for(int i=0; i<BEST_IND_COUNT; i++){
+        bestEver[i] = population[0];
+    }
+
+    // Gera filas de inimigos
     for(int i=0; i<ENEMY_POPS_COUNT; i++){
         for(int j=0; j<ENEMY_POP_SIZE; j++){
             enemies[i][j].GenerateRandomStats();
@@ -392,20 +397,14 @@ int main(){
         for(int i=0; i<GENERATIONS_NUM; i++){
             bestCurrent = Evaluate(population, enemies, battleLog);
 
-            if(i == 0 or bestCurrent->score > bestEver[BEST_IND_COUNT-1].score){
-                bestEver[BEST_IND_COUNT-1] = *bestCurrent;
-            }
-
-            Crossover(population, bestCurrent);
-
              // Guarda o melhor individuo das ultimas gerações
             for(int i=1; i<BEST_IND_COUNT; i++){
                 bestEver[i-1] = bestEver[i];
             }
 
-            bestEver[BEST_IND_COUNT-1] = *bestCurrent;
+            bestEver[BEST_IND_COUNT-1] = *bestCurrent;            
 
-            // Salva dado da geração no arquivo
+            // Salva fitness do melhor da geração no arquivo
             fitnessData << i << " " << bestCurrent->score << endl;
 
             Crossover(population, bestCurrent);
@@ -413,26 +412,32 @@ int main(){
             IncreaseMutationRate(bestEver, population);
         }
     } else if(aux == 2){
-        bool first = true;
+        int generations = 1;
+        cout << "Gerações por passo: ";
+        cin >> generations;        
         do {
-            // Avalia população
-            bestCurrent = Evaluate(population, enemies, battleLog);
+            for(int i=0; i<generations; i++) {
+                bestCurrent = Evaluate(population, enemies, battleLog);
 
-            // Guarda o melhor individuo das ultimas gerações
-            for(int i=1; i<BEST_IND_COUNT; i++){
-                bestEver[i-1] = bestEver[i];
+                // Guarda o melhor individuo das ultimas gerações
+                for(int i=1; i<BEST_IND_COUNT; i++){
+                    bestEver[i-1] = bestEver[i];
+                }
+
+                bestEver[BEST_IND_COUNT-1] = *bestCurrent;
+
+                Crossover(population, bestCurrent);
+
+                IncreaseMutationRate(bestEver, population);
             }
 
-            bestEver[BEST_IND_COUNT-1] = *bestCurrent;
-
-            Crossover(population, bestCurrent);
-
-            IncreaseMutationRate(bestEver, population);
-
-            cout << "score do melhor: " << bestEver[BEST_IND_COUNT-1].score << endl;
+            bestCurrent->PrintEntity();
             cout << "taxa de mutação: " << MUT_RATE << endl;
+
         } while(cin.get() == '\n');
     }
+
+    // Ola
 
     bestEver[BEST_IND_COUNT-1].PrintEntity();
 
