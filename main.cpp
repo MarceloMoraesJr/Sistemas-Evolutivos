@@ -10,22 +10,26 @@
 #define POP_SIZE 50
 #define ENEMY_POPS_COUNT 10
 #define ENEMY_POP_SIZE 2000
-#define TOTAL_STAT_POINTS 200
+#define TOTAL_STAT_POINTS 300
 
 #define ATTRIB_NUM 5      // Mudar aqui caso adicione/remova um atributo
-#define BASE_ATK 40
+
+#define BASE_ATK 30
 #define BASE_DEF 10
-#define BASE_HP  600
-#define BASE_HP_REGEN 200
+#define BASE_HP  900
+#define BASE_HP_REGEN 450
 #define BASE_SPD 10
 
-#define MAX_DEF (BASE_DEF + TOTAL_STAT_POINTS)  // defesa máxima de uma entidade
-#define HP_MODIFIER 5    // quanto de vida a entidade ganha ao gastar um ponto em hp máximo
-#define ATK_MODIFIER 1
-#define HP_REGEN_MODIFIER 3
+// Modificadores: quanto de um atributo a entidade ganha por ponto gasto
+#define ATK_MODIFIER 0.8
+#define DEF_MODIFIER 3
+#define HP_MODIFIER 10
+#define HP_REGEN_MODIFIER 5
+
+#define MAX_DEF (BASE_DEF + DEF_MODIFIER * TOTAL_STAT_POINTS)  // defesa máxima que uma entidade pode ter
 
 #define BEST_IND_COUNT 5
-#define MUT_RATE_INIT 0.002
+#define MUT_RATE_INIT 0.02
 
 #define DEBUG_MODE false
 
@@ -68,7 +72,7 @@ class Entity {
 
         void CalculateStats(){
             this->atk = BASE_ATK + ATK_MODIFIER * this->points[AttribIndex::ATK];
-            this->def = BASE_DEF + this->points[AttribIndex::DEF];
+            this->def = BASE_DEF + DEF_MODIFIER * this->points[AttribIndex::DEF];
             this->hp_max  = BASE_HP + HP_MODIFIER * this->points[AttribIndex::HP_MAX];
             this->hp_current = this->hp_max;
             this->hp_regen = BASE_HP_REGEN + HP_REGEN_MODIFIER * this->points[AttribIndex::HP_REGEN];
@@ -105,7 +109,7 @@ class Entity {
         void TakeDamage(int dmg){
             // Reduz dano tomado em função da defesa
             // até um máximo de 60% de redução de dano
-            hp_current -= dmg * (1 - (0.6/MAX_DEF)*def);
+            hp_current -= dmg * (1 - (0.90/MAX_DEF)*def);
         }
 
         void RegenerateHP(){
@@ -281,7 +285,7 @@ Entity *Evaluate(vector<Entity> &p, vector<vector<Entity>> &e, ofstream &battleL
                 I->RegenerateHP();
 
                 if(turnCount > 0){
-                    score += 10 + 8/turnCount;
+                    score += 10 + 5/turnCount;
                 } else {
                     isWinning = false;
                 }
