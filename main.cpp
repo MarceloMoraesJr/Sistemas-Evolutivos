@@ -6,6 +6,11 @@
 #include <fstream>
 #include <string>
 
+//Para realizar o fork e executar o processo do Gnuplot a fim de plotar o grafico
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #define GENERATIONS_NUM 1000
 #define POP_SIZE 50
 #define ENEMY_POPS_COUNT 10
@@ -396,6 +401,8 @@ int main(){
     cout << "1: Auto" << endl << "2: Interactive" << endl;
     cin >> aux;
 
+    pid_t process_id;
+
     if(aux == 1){
         // Avalia as entidades
         for(int i=0; i<GENERATIONS_NUM; i++){
@@ -415,11 +422,33 @@ int main(){
 
             IncreaseMutationRate(bestEver, population);
         }
+
+
+        //Processo filho GNU_PLOT
+        process_id = fork();
+
+        if(process_id == -1){ //Erro no fork
+            cout<<"\n\n erro no fork do processo para criar o gnuplot";
+            battleLog.close();
+            fitnessData.close();
+            exit(EXIT_FAILURE);
+        }else if(process_id == 0) { //No processo filho
+            char * argv_list[] = {"gnuplot","gnuplot_in",NULL};
+            if(execvp("gnuplot",argv_list) == -1){ //Executa o gnuplot
+                cout << "\nErro ao tentar executar o Gnuplot\n";
+            }
+            exit(0);
+        }
+
     } else if(aux == 2){
+        int iterations = -1;
         int generations = 1;
+
         cout << "Gerações por passo: ";
-        cin >> generations;        
+        cin >> generations;       
+
         do {
+            iterations++;
             for(int i=0; i<generations; i++) {
                 bestCurrent = Evaluate(population, enemies, battleLog);
 
@@ -433,10 +462,32 @@ int main(){
                 Crossover(population, bestCurrent);
 
                 IncreaseMutationRate(bestEver, population);
+
+                // Salva fitness do melhor da geração no arquivo
+                fitnessData << iterations*generations + i << " " << bestCurrent->score << endl;
             }
 
             bestCurrent->PrintEntity();
             cout << "taxa de mutação: " << MUT_RATE << endl;
+            
+
+            //Processo filho GNU_PLOT
+            if(iterations == 0){ //Apenas para a primeira iteracao faz o fork 
+                process_id = fork();
+
+                if(process_id == -1){ //Erro no fork
+                    cout<<"\n\n erro no fork do processo para criar o gnuplot";
+                    battleLog.close();
+                    fitnessData.close();
+                    exit(EXIT_FAILURE);
+                }else if(process_id == 0) { //No processo filho
+                    char * argv_list[] = {"gnuplot","gnuplot_in2",NULL};
+                    if(execvp("gnuplot",argv_list) == -1){ //Executa o gnuplot
+                        cout << "\nErro ao tentar executar o Gnuplot\n";
+                    }
+                    exit(0);
+                }
+            }
 
         } while(cin.get() == '\n');
     }
