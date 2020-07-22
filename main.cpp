@@ -5,13 +5,19 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <chrono>
 
 //Para realizar o fork e executar o processo do Gnuplot a fim de plotar o grafico
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-#define GENERATIONS_NUM 1000
+// SFML (graficos)
+#include <SFML/System.hpp>
+#include <SFML/Window.hpp>
+#include <SFML/Graphics.hpp>
+
+#define GENERATIONS_NUM 100
 #define POP_SIZE 50
 #define ENEMY_POPS_COUNT 10
 #define ENEMY_POP_SIZE 2000
@@ -358,6 +364,166 @@ void IncreaseMutationRate(vector<Entity> &bestEver, vector<Entity> &population){
     }
 }
 
+//Estados da MEF da luta
+enum State{
+    INITIALIZING,
+    PLAYERS_TURN,
+    ENEMYS_TURN,
+    END
+};
+
+enum EntityType {
+    PLAYER,
+    ENEMY
+};
+
+class GUIEntity {
+    public:
+    Entity entity;
+
+    sf::Text name;
+    sf::Text HPText;
+    sf::RectangleShape maxHPBar;
+    sf::RectangleShape currentHPBar;
+    sf::Sprite sprite;
+    sf::Text statsText;
+    sf::Text damageTakenText;
+
+    GUIEntity(Entity e, EntityType entityType, sf::Font &font) :
+                name(),
+                HPText(),
+                maxHPBar(),
+                currentHPBar(),
+                sprite(),
+                statsText(),
+                damageTakenText()
+    {
+        sf::Texture texture;
+        entity = e;
+        if(entityType == EntityType::PLAYER){
+            name.setString("player");
+            texture.loadFromFile("sprites/player.png");
+            sprite.setTexture(texture);
+
+            name.setPosition(195.82, 138.32);
+            sprite.setPosition(200, 256);
+            HPText.setPosition(204.66, 187.48);
+            maxHPBar.setPosition(178, 213);
+            currentHPBar.setPosition(180, 215);
+            statsText.setPosition(193.82, 367.32);
+            damageTakenText.setPosition(214.82, 113.32);
+        } else if(entityType == EntityType::ENEMY){
+            name.setString("enemy");
+            texture.loadFromFile("sprites/enemy.png");
+            sprite.setTexture(texture);
+
+            name.setPosition(538.82, 138.32);
+            HPText.setPosition(538.66, 187.48);
+            maxHPBar.setPosition(513, 213);
+            currentHPBar.setPosition(515, 215);
+            sprite.setPosition(535, 256);
+            statsText.setPosition(528.82, 367.32);
+            damageTakenText.setPosition(550, 113.32);
+        }        
+        name.setFont(font);
+        name.setCharacterSize(30);
+
+        name.setFillColor(sf::Color(254, 194, 32, 255));
+        name.setOutlineColor(sf::Color(255, 255, 255, 0));
+        name.setOutlineThickness(3);
+
+        HPText.setString(to_string(entity.hp_current) + "/" + to_string(entity.hp_max));
+        HPText.setFont(font);
+        HPText.setCharacterSize(20);
+
+        maxHPBar.setSize(sf::Vector2f(144, 19));
+        maxHPBar.setFillColor(sf::Color(0, 0, 0, 255));
+
+        currentHPBar.setSize(sf::Vector2f(144, 19));
+        currentHPBar.setFillColor(sf::Color(116, 227, 27, 255));
+
+        statsText.setString("atk: " + to_string(entity.points[AttribIndex::ATK])     + '\n' +
+                           "def: " + to_string(entity.points[AttribIndex::DEF])     + '\n' +
+                           "hp:  " + to_string(entity.points[AttribIndex::HP_MAX])  + '\n' +
+                           "reg: " + to_string(entity.points[AttribIndex::HP_REGEN])+ '\n' +
+                           "spd: " + to_string(entity.points[AttribIndex::SPD])     + '\n');
+        statsText.setFont(font);
+        statsText.setCharacterSize(30);
+        statsText.setFillColor(sf::Color(255, 255, 255, 255));
+
+        damageTakenText.setString("");
+        damageTakenText.setFont(font);
+        damageTakenText.setCharacterSize(30);
+        damageTakenText.setFillColor(sf::Color(234,96,20));
+        // Oculta dano tomado
+        damageTakenText.setScale(sf::Vector2f(0, 0));
+    }
+
+    void SetEntity(Entity newEntity){
+        entity = newEntity;
+        UpdateStats();
+    }
+
+    void TakeDamage(int dmg){
+        float previous_hp = entity.hp_current;
+        entity.TakeDamage(dmg);
+        float new_hp = entity.hp_current;
+
+        damageTakenText.setString(to_string((int)(previous_hp - new_hp)));
+
+        if(entity.IsDead()){
+            currentHPBar.setScale(sf::Vector2f(0, 1));
+        } else {
+            currentHPBar.setScale(sf::Vector2f(entity.hp_current/entity.hp_max, 1));
+        }
+    }
+
+    void HighlightName(){
+        name.setOutlineColor(sf::Color(255, 255, 255, 255));
+    }
+
+    void NormalizeName(){
+        name.setOutlineColor(sf::Color(255, 255, 255, 0));
+    }
+
+    void ShowDamageTaken(){
+        damageTakenText.setScale(sf::Vector2f(1, 1));
+    }
+
+    void HideDamageTaken(){
+        damageTakenText.setScale(sf::Vector2f(0, 0));
+    }
+
+    bool IsDead(){
+        return entity.IsDead();
+    }
+
+    void RegenerateHP(){
+        entity.RegenerateHP();
+
+        currentHPBar.setScale(sf::Vector2f(entity.hp_current/entity.hp_max, 1));
+    }
+
+    void DrawInto(sf::RenderWindow &window){
+        window.draw(name);
+        window.draw(HPText);
+        window.draw(maxHPBar);
+        window.draw(currentHPBar);
+        window.draw(sprite);
+        window.draw(statsText);
+        window.draw(damageTakenText);
+    }
+
+    private:
+    void UpdateStats(){
+        statsText.setString("atk: " + to_string(entity.points[AttribIndex::ATK])     + '\n' +
+                           "def: " + to_string(entity.points[AttribIndex::DEF])     + '\n' +
+                           "hp:  " + to_string(entity.points[AttribIndex::HP_MAX])  + '\n' +
+                           "reg: " + to_string(entity.points[AttribIndex::HP_REGEN])+ '\n' +
+                           "spd: " + to_string(entity.points[AttribIndex::SPD])     + '\n');
+    }
+};
+
 int main(){
     srand(time(NULL));
 
@@ -425,20 +591,20 @@ int main(){
 
 
         //Processo filho GNU_PLOT
-        process_id = fork();
+        // process_id = fork();
 
-        if(process_id == -1){ //Erro no fork
-            cout<<"\n\n erro no fork do processo para criar o gnuplot";
-            battleLog.close();
-            fitnessData.close();
-            exit(EXIT_FAILURE);
-        }else if(process_id == 0) { //No processo filho
-            char * argv_list[] = {"gnuplot","gnuplot_in",NULL};
-            if(execvp("gnuplot",argv_list) == -1){ //Executa o gnuplot
-                cout << "\nErro ao tentar executar o Gnuplot\n";
-            }
-            exit(0);
-        }
+        // if(process_id == -1){ //Erro no fork
+        //     cout<<"\n\n erro no fork do processo para criar o gnuplot";
+        //     battleLog.close();
+        //     fitnessData.close();
+        //     exit(EXIT_FAILURE);
+        // }else if(process_id == 0) { //No processo filho
+        //     char * argv_list[] = {"gnuplot","gnuplot_in",NULL};
+        //     if(execvp("gnuplot",argv_list) == -1){ //Executa o gnuplot
+        //         cout << "\nErro ao tentar executar o Gnuplot\n";
+        //     }
+        //     exit(0);
+        // }
 
     } else if(aux == 2){
         int iterations = -1;
@@ -492,9 +658,71 @@ int main(){
         } while(cin.get() == '\n');
     }
 
-    // Ola
-
     bestEver[BEST_IND_COUNT-1].PrintEntity();
+
+    // Testando SFML
+    sf::RenderWindow window(sf::VideoMode(800, 600), "AG");
+    window.clear(sf::Color(56, 56, 56, 255));
+
+    // Best Score text GUI
+    sf::Font font;
+    font.loadFromFile("fonts/upheavtt.ttf");
+    sf::Text bestScoreText("best score: " + to_string(bestEver[BEST_IND_COUNT-1].score), font, 30);
+    bestScoreText.setPosition(24.83, 16.32);
+    bestScoreText.setFillColor(sf::Color(255, 255, 255, 255));    
+
+    sf::Event event;
+    
+    State state = State::INITIALIZING;
+    int enemyIndex = 0;
+    GUIEntity Player(bestEver[BEST_IND_COUNT-1], EntityType::PLAYER, font);
+    GUIEntity Enemy(enemies[0][enemyIndex], EntityType::ENEMY, font);
+
+    auto time_previous = chrono::high_resolution_clock::now();
+    auto time_current = chrono::high_resolution_clock::now();
+    // auto duration = chrono::duration_cast<chrono::seconds>( time_current - time_previous ).count();
+    int64_t wait_duration = 2;
+    
+    while(window.isOpen()){
+        while(window.pollEvent(event)){
+            if(event.type == sf::Event::Closed){
+                window.close();
+            }
+        }
+
+        if(chrono::duration_cast<chrono::seconds>(time_current - time_previous).count() < wait_duration){
+            time_current = chrono::high_resolution_clock::now();
+        } else {
+            switch(state){
+                case State::INITIALIZING:
+                    Player.RegenerateHP();
+                    if(Player.entity.spd >= Enemy.entity.spd){
+                        state = State::PLAYERS_TURN;
+                    } else {
+                        state = State::ENEMYS_TURN;
+                    }
+                    break;
+                case State::PLAYERS_TURN:
+                    Player.HighlightName();
+                    Enemy.NormalizeName();
+                    break;
+                case State::ENEMYS_TURN:
+                    Enemy.HighlightName();
+                    Player.NormalizeName();
+                    break;
+                case State::END:
+
+                    break;
+                }
+            time_previous = time_current;        
+        }
+
+        // Draw scene
+        window.setActive();
+        Player.DrawInto(window);
+        Enemy.DrawInto(window);
+        window.display();
+    }
 
     // Debug
     if(DEBUG_MODE){
