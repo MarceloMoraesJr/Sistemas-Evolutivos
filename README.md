@@ -51,4 +51,6 @@ gnuplot gnuplot_in
 ```
 
 Exemplo:
+
+
 ![Gráfico de fitness](../master/images/graph.png "Gráfico de fitness")
