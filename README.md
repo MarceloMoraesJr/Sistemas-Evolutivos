@@ -21,8 +21,6 @@ Os combates são no formato 1 contra 1 baseado em turnos (o jogador e o inimigo 
 O algoritmo evolutivo foi aplicado de modo a encontrar a distribuição de pontos que permite que o personagem do jogador
 derrote a maior quantidade de possível inimigos.
 
----
-
 ## Execução
 
 O software deve ser compilado e executado em um ambiente Linux.
