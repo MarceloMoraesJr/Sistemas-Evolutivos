@@ -38,6 +38,10 @@ Para executar:
 ``` 
 make run 
 ```
+
+Ao executar, o algoritmo evolutivo gera um indivíduo com "bons" atributos e mostra uma simulação deste personagem
+lutando contra as filas de inimigos usadas na avaliação
+
 ## Gráfico de fitness
 
  O fitness é uma função do número de
