@@ -17,7 +17,7 @@ em combates 1 contra 1 baseado em turnos (o jogador e o inimigo se alternam ao a
 
 ### O Algoritmo
 
-O algoritmo evolutivo foi aplicado de modo a encontrar a distribuição de pontos que permite que o personagem do jogo
+O algoritmo evolutivo foi aplicado de modo a encontrar a distribuição de pontos que permite que o personagem do jogador
 derrote a maior quantidade de inimigos possível.
 
 ---
