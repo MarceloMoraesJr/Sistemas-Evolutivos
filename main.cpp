@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <chrono>
 #include <cmath>
 
@@ -12,16 +14,16 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 
-#define GENERATIONS_NUM 50
+#define GENERATIONS_NUM 1000
 #define POP_SIZE 50
 #define ENEMY_POPS_COUNT 10
-#define ENEMY_POP_SIZE 100
+#define ENEMY_POP_SIZE 500
 
 #define PLAYER_STAT_POINTS 300
 #define ENEMY_STAT_POINTS 300
 #define ATTRIB_NUM 5      // Mudar aqui caso adicione/remova um atributo
 
-#define BASE_ATK 30
+#define BASE_ATK 10
 #define BASE_DEF 10
 #define BASE_HP  900
 #define BASE_HP_REGEN 300
@@ -60,7 +62,9 @@ class Entity {
         int hp_current;
         int hp_regen;
         int spd;
+
         float score;
+        float victories;
         int index;
         vector<int> points;
 
@@ -74,6 +78,7 @@ class Entity {
             hp_regen = BASE_HP_REGEN;
             spd = BASE_SPD;
             score = 0;
+            victories = 0;
             index = -1;
 
             TOTAL_STAT_POINTS = ENEMY_STAT_POINTS;
@@ -88,6 +93,7 @@ class Entity {
             hp_regen = BASE_HP_REGEN;
             spd = BASE_SPD;
             score = 0;
+            victories = 0;
             index = -1;
 
             TOTAL_STAT_POINTS = total_stat_points;
@@ -192,6 +198,7 @@ class Entity {
             // Calcula status
             CalculateStats();
             this->score = 0;
+            this->victories = 0;
         }
 
         void PrintEntity(){
@@ -201,7 +208,8 @@ class Entity {
             cout << "hp_max points: " << this->points[AttribIndex::HP_MAX] << endl;
             cout << "hp_regen points: " << this->points[AttribIndex::HP_REGEN] << endl;
             cout << "spd points: " << this->points[AttribIndex::SPD] << endl;
-            cout << "score: " << this->score << endl;
+            cout << "victories(mean): " << this->victories << endl;
+            cout << "score(mean): " << this->score << endl;
             cout << endl;
         }
 
@@ -213,7 +221,8 @@ class Entity {
             file << "hp_current: " << this->hp_current << endl;
             file << "hp_regen: " << this->hp_regen << endl;
             file << "spd: " << this->spd << endl;
-            file << "score: " << this->score << endl;
+            file << "victories(mean): " << this->victories << endl;
+            file << "score(mean): " << this->score << endl;
             file << endl;
         }
 };
@@ -269,39 +278,38 @@ float DuelToDeath(Entity *I, Entity *E){
 // cada individuo
 Entity *Evaluate(vector<Entity> &p, vector<vector<Entity>> &e){
     Entity *best, *I, *E;
-    float topScore = 0, score, finalScore;
+    float topScore = 0, score, victories, finalScore, finalVictories;
     bool isWinning;
     float turnCount;
 
     // Organiza lutas e armazena quem obteve mais vitórias
     for(int i=0; i<(int)p.size(); i++){
         I = &(p[i]);
-        // cout << endl << "E" << I->index << endl;
         finalScore = 0;
         for(int j=0; j<ENEMY_POPS_COUNT; j++){
             isWinning = true;
             score = 0;
+            victories = 0;
             for(int k=0; k<ENEMY_POP_SIZE and isWinning; k++){
                 E = &(e[j][k]);
                 turnCount = DuelToDeath(I, E);
                 I->RegenerateHP();
 
                 if(turnCount > 0){
-                    // cout << 10 + 100/turnCount << " ";
-                    score += 10;
+                    victories++;
+                    score += 10 + 120/turnCount;
                 } else {
-                    // cout << "perdeu" << " ";
                     isWinning = false;
                 }
             }
 
             finalScore += score;
+            finalVictories += victories;
             I->hp_current = I->hp_max;
         }
 
-        // cout << endl;
-
         I->score = finalScore/(ENEMY_POPS_COUNT);
+        I->victories = finalVictories/(ENEMY_POPS_COUNT);
         
         if(i == 0 or I->score > topScore){
             topScore = I->score;
@@ -616,25 +624,34 @@ int main(){
     sf::RenderWindow window(sf::VideoMode(800, 600), "AG");
     sf::Color bgColor = sf::Color(56, 56, 56, 255);
 
-    // Best Score text GUI
+    // Texto do score do melhor individuo
     sf::Font font;
     font.loadFromFile("fonts/upheavtt.ttf");
-    sf::Text bestScoreText("mean score: " + to_string((*bestCurrent).score), font, 30);
+    stringstream bestScore, bestVictories;
+    bestScore << fixed << setprecision(2) << bestCurrent->score;
+    bestVictories << fixed << setprecision(2) << bestCurrent->victories;
+
+    sf::Text bestScoreText("score (victories): " + bestScore.str() + " (" + bestVictories.str() + ")", font, 30);
     bestScoreText.setPosition(24.83, 16.32);
     bestScoreText.setFillColor(sf::Color(255, 255, 255, 255)); 
 
+    // Texto do indice do inimigo sendo enfrentado
     int enemyIndex = 0, enemyQueueIndex = 0;
-    sf::Text queueText("queue " + to_string(enemyQueueIndex), font, 30);
+    string strEnemyQueuesCount = to_string(ENEMY_POPS_COUNT);
+    string strEnemyQueueSize = to_string(ENEMY_POP_SIZE);
+
+    sf::Text queueText("queue: " + to_string(enemyQueueIndex) + "/" + strEnemyQueuesCount, font, 30);
     queueText.setPosition(24.83, 50);
     queueText.setFillColor(sf::Color(255, 255, 255, 255));
 
-    sf::Text enemyIndexText("enemy " + to_string(enemyQueueIndex), font, 30);
+    sf::Text enemyIndexText("enemy: " + to_string(enemyQueueIndex) + "/" + strEnemyQueueSize, font, 30);
     enemyIndexText.setPosition(24.83, 85);
     enemyIndexText.setFillColor(sf::Color(255, 255, 255, 255));
 
     sf::Event event;    
     State state = State::INITIALIZING;
 
+    // Interface do melhor individuo e do inimigo
     sf::Texture playerTexture, enemyTexture;
     playerTexture.loadFromFile("sprites/player.png");
     enemyTexture.loadFromFile("sprites/enemy.png");
@@ -646,6 +663,8 @@ int main(){
     
     float wait_duration = 0.5;
     
+    // Loop principal da interface
+    // Mostra melhor individuo lutando contra todos os inimigos gerados
     while(window.isOpen()){
         while(window.pollEvent(event)){
             if(event.type == sf::Event::Closed){
@@ -655,15 +674,16 @@ int main(){
 
         chrono::duration<float> time_span = chrono::duration_cast<chrono::duration<float>>(time_current-time_previous);
         
+        // Delay de transição de estados
         if(time_span.count() < wait_duration){
             time_current = chrono::high_resolution_clock::now();
-        } else {
+        } else {    // Processa estado atual e transição
             switch(state){
                 case State::INITIALIZING:
                     Player.RegenerateHP();
 
-                    queueText.setString("queue " + to_string(enemyQueueIndex));
-                    enemyIndexText.setString("enemy " + to_string(enemyIndex));
+                    queueText.setString("queue " + to_string(enemyQueueIndex + 1) + "/" + strEnemyQueuesCount);
+                    enemyIndexText.setString("enemy " + to_string(enemyIndex + 1) + "/" + strEnemyQueueSize);
 
                     Enemy.SetEntity(enemies[enemyQueueIndex][enemyIndex++]);
 
@@ -706,12 +726,13 @@ int main(){
                     Player.HideDamageTaken();
                     Enemy.HideDamageTaken();
 
+                    // Ao fim, restaura melhor individuo e passa para a proxima fila
                     Player.entity.hp_current = Player.entity.hp_max;
                     enemyQueueIndex++;
                     enemyIndex = 0;
 
-                    queueText.setString("queue " + to_string(enemyQueueIndex));
-                    enemyIndexText.setString("enemy " + to_string(enemyIndex));
+                    queueText.setString("queue " + to_string(enemyQueueIndex + 1) + "/" + strEnemyQueuesCount);
+                    enemyIndexText.setString("enemy " + to_string(enemyIndex + 1) + "/" + strEnemyQueueSize);
 
                     if(enemyQueueIndex < ENEMY_POPS_COUNT)
                         state = State::INITIALIZING;
@@ -720,7 +741,7 @@ int main(){
             time_previous = time_current;        
         }
 
-        // Draw scene
+        // Desenha na tela
         window.setActive();
         window.clear(bgColor);
         window.draw(bestScoreText);
