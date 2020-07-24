@@ -2,5 +2,5 @@ set title "Fitness of best individual of each generation"
 set xlabel "Generation"
 set ylabel "Fitness"
 set terminal png size 800,600
-set output 'graph.png'
+set output 'images/graph.png'
 plot 'fitness.dat' with lines
