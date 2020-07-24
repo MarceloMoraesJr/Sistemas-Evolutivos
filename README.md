@@ -10,7 +10,7 @@
 
 ### O Jogo
 
-![SS do jogo](../master/graph.png "Screenshot do jogo")
+![SS do jogo](../master/images/game_ss.jpg "Screenshot do jogo")
 
 No jogo, o jogador deve distribuir uma certa quantidade de pontos entre diferentes atributos (ataque, defesa, etc.) de
 de seu personagem de modo que o mesmo consiga derrotar o maior número possível de inimigos de uma fila gerada aleatoriamente
@@ -51,4 +51,4 @@ gnuplot gnuplot_in
 ```
 
 Exemplo:
-![Gráfico de fitness](../master/graph.png "Gráfico de fitness")
+![Gráfico de fitness](../master/images/graph.png "Gráfico de fitness")
