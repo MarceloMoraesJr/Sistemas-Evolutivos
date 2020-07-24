@@ -30,8 +30,12 @@ Para compilar, é necessário ter instalado a biblioteca [SFML](https://www.sfml
 
 Para compilar, executar em um terminal:
 
-''' make '''
+``` 
+make 
+```
 
 Para executar:
 
-''' make run '''
+``` 
+make run 
+```
