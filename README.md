@@ -16,7 +16,7 @@ No jogo, o jogador deve distribuir uma certa quantidade de pontos entre diferent
 seu personagem de modo que o mesmo consiga derrotar o maior número possível de inimigos de uma fila gerada aleatoriamente.
 Os combates são no formato 1 contra 1 baseado em turnos (o jogador e o inimigo se alternam ao atacar).
 
-<b>Atributos<b>
+**Atributos**
  * Ataque (ATK) : determina o dano que a entidade causa ao oponente, reduzindo a vida deste
  * Defesa (DEF) : determina uma porcentagem de redução do dano sofrido pela entidade
  * Vida (HP) : determina a quantidade máxima de pontos de vida da entidade
