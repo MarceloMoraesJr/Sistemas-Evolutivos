@@ -40,7 +40,7 @@ mutação atinge certo threshold, a população é gerada novamente com distruib
 
 Ao executar, escolhe-se um dos modos de operação:
  * Auto: o algoritmo executa automaticamente para o número de gerações especificado no ``` #define GENERATIONS_NUM ```
-* Interativo: define-se o número de gerações a serem avaliadas por passo e a cada ```enter``` pressionado, o algoritmo é executado
+ * Interativo: define-se o número de gerações a serem avaliadas por passo e a cada ```enter``` pressionado, o algoritmo é executado
  para tal número de gerações, mostrando-se as características (cromossomos e fitness) do best-fit e a taxa de mutação.
  ``` Ctrl+D ``` encerra a execução do algoritmo.
  
