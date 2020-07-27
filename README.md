@@ -33,7 +33,7 @@ de vitórias e do número de turnos que cada batalha levou, de modo que quanto m
 o fitness.
 
 Para cada geração, calcula-se o fitness de cada indivíduo, realiza-se o crossover de maneira "elitista" (todo indivíduo se torna a média entre o mesmo e o
-best-fit da geração anterior) com mutação. A taxa de mutação aumenta caso o fitness do best-fit continua parecido com o passar das gerações. Quando a taxa de
+best-fit da geração atual) com mutação. A taxa de mutação aumenta caso o fitness do best-fit continua parecido com o passar das gerações. Quando a taxa de
 mutação atinge certo threshold, a população é gerada novamente com distruibação de atributos aleatória (mas o best-fit permanece).
 
 ### O Programa
