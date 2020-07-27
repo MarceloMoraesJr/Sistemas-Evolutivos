@@ -64,9 +64,6 @@ Para executar:
 make run 
 ```
 
-Ao executar, o algoritmo evolutivo gera um indivíduo com "bons" atributos e mostra uma simulação deste personagem
-lutando contra as filas de inimigos usadas na avaliação
-
 ## Gráfico de fitness
 
 Os dados do gráfico de fitness x geração são salvos no arquivo [fitness.dat](../master/fitness.dat).
