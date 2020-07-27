@@ -3,4 +3,4 @@ set xlabel "Generation"
 set ylabel "Fitness"
 set terminal png size 800,600
 set output 'images/graph.png'
-plot 'fitness.dat' with lines
+plot 'fitness.dat' with lines, 'mean.dat' with lines

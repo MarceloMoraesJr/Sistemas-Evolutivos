@@ -36,7 +36,7 @@
 #define HP_REGEN_MODIFIER 5
 
 #define BEST_IND_COUNT 5
-#define MUT_RATE_INIT 0.02
+#define MUT_RATE_INIT (0.02)
 
 #define DEBUG_MODE false
 
@@ -339,13 +339,13 @@ void Genocide(Entity &best, vector<Entity> &population){
 }
 
 void IncreaseMutationRate(vector<Entity> &bestEver, vector<Entity> &population){
-    if(bestEver[BEST_IND_COUNT-1].score - bestEver[0].score < 0.1){
+    if(bestEver[BEST_IND_COUNT-1].score - bestEver[0].score < 0.00001){
         MUT_RATE *= 1.1;
     } else {
         MUT_RATE = MUT_RATE_INIT;
     }
 
-    if(MUT_RATE >= 1){
+    if(MUT_RATE >= 2){
         Genocide(bestEver[BEST_IND_COUNT-1], population);
         MUT_RATE = MUT_RATE_INIT;
     }
@@ -513,11 +513,21 @@ class GUIEntity {
     }
 };
 
+float populationMean(vector<Entity> p){
+    float mean = 0;
+    for(int i=0; i<(int)p.size(); i++){
+        mean += p[i].score;
+    }
+
+    return mean/p.size();
+}
+
 int main(){
     srand(time(NULL));
 
     // Dados para o grafico de fitness
     ofstream fitnessData("fitness.dat", ofstream::out);
+    ofstream meanData("mean.dat", ofstream::out);
 
     vector<Entity> population;
     vector<vector<Entity>> enemies;
@@ -565,6 +575,7 @@ int main(){
     cin >> aux;
 
     if(aux == 1){
+        float popMean = 0;
         // Avalia as entidades
         for(int i=0; i<GENERATIONS_NUM; i++){
             bestCurrent = Evaluate(population, enemies);
@@ -579,6 +590,10 @@ int main(){
             // Salva fitness do melhor da geração no arquivo
             fitnessData << i << " " << bestCurrent->score << endl;
 
+            // Calcula e salva a media da população
+            popMean = populationMean(population);
+            meanData << i << " " << popMean << endl;
+
             Crossover(population, bestCurrent);
 
             IncreaseMutationRate(bestEver, population);
@@ -587,6 +602,7 @@ int main(){
     } else if(aux == 2){
         int iterations = -1;
         int generations = 1;
+        float popMean = 0;
 
         cout << "Gerações por passo: ";
         cin >> generations;       
@@ -609,6 +625,8 @@ int main(){
 
                 // Salva fitness do melhor da geração no arquivo
                 fitnessData << iterations*generations + i << " " << bestCurrent->score << endl;
+                popMean = populationMean(population);
+                meanData << iterations*generations + i << " " << popMean << endl;
             }
 
             bestCurrent->PrintEntity();
@@ -616,6 +634,9 @@ int main(){
 
         } while(cin.get() == '\n');
     }
+
+    fitnessData.close();
+    meanData.close();
 
     (*bestCurrent).PrintEntity();
 
