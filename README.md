@@ -10,9 +10,6 @@
 
 Vídeo:
 
-https://youtu.be/wIrHEIi1anU
-
-
 [![Video](http://img.youtube.com/vi/wIrHEIi1anU/0.jpg)](https://youtu.be/wIrHEIi1anU)
 
 
