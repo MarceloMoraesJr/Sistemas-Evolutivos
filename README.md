@@ -8,6 +8,14 @@
 
 ## Projeto
 
+Vídeo:
+
+https://youtu.be/wIrHEIi1anU
+
+
+[![Video](http://img.youtube.com/vi/wIrHEIi1anU/0.jpg)](https://youtu.be/wIrHEIi1anU)
+
+
 ### O Jogo
 
 ![SS do jogo](../master/images/game_ss.jpg "Screenshot do jogo")
@@ -26,7 +34,7 @@ Os combates são no formato 1 contra 1 baseado em turnos (o jogador e o inimigo 
 ### O Algoritmo
 
 O algoritmo evolutivo foi aplicado de modo a encontrar a distribuição de pontos que permite que o personagem do jogador
-derrote a maior quantidade de possível inimigos.
+derrote a maior quantidade possível de inimigos.
 
 A população é formada por vários "personagens" que representam jogadores. O fitness de cada indivíduo é dado por uma função do número
 de vitórias e do número de turnos que cada batalha levou, de modo que quanto mais vitórias e quanto mais rápidas forem as batalhas, maior
